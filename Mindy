@@ -1,0 +1,60 @@
+-- ReplicatedStorage / MConfig  (ModuleScript)
+-- Усі налаштування гри в одному місці: предмети, блоки, вороги, сектори.
+local C = {TILE = 4, W = 48, H = 48}
+
+-- Предмети (індекси 1..7 однакові з індексами руд на карті)
+C.IK = {"copper", "lead", "sand", "coal", "titanium", "graphite", "silicon"}
+C.IN = {"Мідь", "Свинець", "Пісок", "Вугілля", "Титан", "Графіт", "Кремній"}
+C.IC = {
+	Color3.fromRGB(217, 157, 115), Color3.fromRGB(140, 127, 169), Color3.fromRGB(217, 194, 138),
+	Color3.fromRGB(60, 62, 68), Color3.fromRGB(143, 180, 214), Color3.fromRGB(163, 169, 179), Color3.fromRGB(111, 211, 197),
+}
+C.KI = {}
+for i, k in ipairs(C.IK) do C.KI[k] = i end
+C.ORE_HARD = {1, 1, 0, 2, 3} -- твердість руди (мідь, свинець, пісок, вугілля, титан)
+
+-- Розділи меню будівництва
+C.CATS = {{"dist", "Розподіл"}, {"prod", "Видобуток"}, {"power", "Енергія"}, {"turret", "Турелі"}, {"wall", "Захист"}}
+
+-- sec = з якого сектора блок доступний. ht = висота моделі у студах.
+local g = Color3.fromRGB
+C.BLOCKS = {
+	conveyor   = {n = "Конвеєр", cat = "dist", cost = {copper = 1}, hp = 45, sec = 1, col = g(90, 94, 101), ht = 0.6},
+	junction   = {n = "Перехрестя", cat = "dist", cost = {copper = 2}, hp = 50, sec = 1, col = g(110, 114, 121), ht = 1},
+	router     = {n = "Маршрутизатор", cat = "dist", cost = {copper = 3}, hp = 50, sec = 1, col = g(106, 110, 117), ht = 1.2},
+	drill      = {n = "Механічний бур", cat = "prod", w = 2, h = 2, cost = {copper = 12}, hp = 160, sec = 1, col = g(91, 95, 102), ht = 2, drill = true, tier = 2, rate = 0.09},
+	pdrill     = {n = "Пневматичний бур", cat = "prod", w = 2, h = 2, cost = {copper = 18, graphite = 10}, hp = 190, sec = 4, col = g(120, 126, 140), ht = 2.2, drill = true, tier = 3, rate = 0.14},
+	press      = {n = "Графітний прес", cat = "prod", w = 2, h = 2, cost = {copper = 75, lead = 30}, hp = 200, sec = 2, col = g(95, 99, 106), ht = 2.4},
+	smelter    = {n = "Кремнієва піч", cat = "prod", w = 2, h = 2, cost = {copper = 30, lead = 25}, hp = 220, sec = 3, col = g(103, 93, 88), ht = 2.6},
+	combustion = {n = "Генератор", cat = "power", cost = {copper = 25, lead = 15}, hp = 100, sec = 3, col = g(160, 100, 60), ht = 2},
+	solar      = {n = "Сонячна панель", cat = "power", cost = {copper = 40, silicon = 15}, hp = 80, sec = 3, col = g(60, 90, 140), ht = 0.8},
+	duo        = {n = "Дуо", cat = "turret", cost = {copper = 35}, hp = 110, sec = 1, col = g(76, 80, 88), ht = 1.6},
+	hail       = {n = "Град", cat = "turret", cost = {copper = 40, graphite = 17}, hp = 130, sec = 2, col = g(88, 80, 76), ht = 1.6},
+	scatter    = {n = "Скаттер", cat = "turret", w = 2, h = 2, cost = {copper = 85, lead = 45}, hp = 200, sec = 2, col = g(84, 92, 98), ht = 2},
+	lancer     = {n = "Лансер", cat = "turret", w = 2, h = 2, cost = {copper = 100, lead = 50, silicon = 45}, hp = 280, sec = 4, col = g(70, 100, 130), ht = 2},
+	mender     = {n = "Ремонтник", cat = "turret", cost = {lead = 30, copper = 10}, hp = 80, sec = 2, col = g(110, 200, 150), ht = 1.4},
+	cwall      = {n = "Мідна стіна", cat = "wall", cost = {copper = 6}, hp = 320, sec = 1, col = g(199, 138, 88), ht = 3},
+	twall      = {n = "Титанова стіна", cat = "wall", cost = {titanium = 6}, hp = 440, sec = 4, col = g(143, 180, 214), ht = 3},
+}
+
+-- Вороги. fly = літає, range у тайлах, rate = пауза між ударами (с)
+C.ENEMIES = {
+	dagger  = {hp = 130, spd = 0.8, range = 4.5, dmg = 8,  rate = 0.6,  fly = false, col = g(120, 124, 132), size = Vector3.new(2.6, 2.6, 2.6)},
+	flare   = {hp = 60,  spd = 2.6, range = 1.6, dmg = 5,  rate = 0.35, fly = true,  col = g(229, 88, 79),   size = Vector3.new(2, 0.7, 2)},
+	mace    = {hp = 550, spd = 0.7, range = 2.2, dmg = 22, rate = 0.5,  fly = false, col = g(150, 60, 55),   size = Vector3.new(3.6, 3.6, 3.6)},
+	horizon = {hp = 340, spd = 1.9, range = 0.9, dmg = 30, rate = 0.6,  fly = true,  col = g(70, 70, 80),    size = Vector3.new(3.2, 0.8, 3.2)},
+}
+
+-- Сектори (рівні). waves = скільки хвиль пережити. ores = кількість плям кожної руди.
+C.SECTORS = {
+	{n = "Нульова точка",     seed = 11, waves = 10, sc = 1.0, ores = {copper = 3, lead = 3, sand = 2, coal = 2}, start = {copper = 300}},
+	{n = "Крижаний ліс",      seed = 23, waves = 15, sc = 1.2, ores = {copper = 3, lead = 3, sand = 2, coal = 4}, start = {copper = 400, lead = 100}},
+	{n = "Кратери",           seed = 37, waves = 20, sc = 1.4, ores = {copper = 3, lead = 3, sand = 4, coal = 3}, start = {copper = 500, lead = 200, graphite = 50}},
+	{n = "Руїнні береги",     seed = 41, waves = 25, sc = 1.6, ores = {copper = 3, lead = 3, sand = 3, coal = 3, titanium = 2}, start = {copper = 600, lead = 300, graphite = 100, silicon = 50}},
+	{n = "Вітряні острови",   seed = 53, waves = 30, sc = 1.8, ores = {copper = 3, lead = 3, sand = 3, coal = 3, titanium = 3}, start = {copper = 800, lead = 400, graphite = 150, silicon = 100}},
+	{n = "Плямисті гори",     seed = 67, waves = 35, sc = 2.0, ores = {copper = 3, lead = 3, sand = 3, coal = 3, titanium = 3}, start = {copper = 1000, lead = 500, graphite = 200, silicon = 150, titanium = 50}},
+	{n = "Смоляні поля",      seed = 79, waves = 40, sc = 2.3, ores = {copper = 3, lead = 3, sand = 3, coal = 4, titanium = 3}, start = {copper = 1200, lead = 600, graphite = 300, silicon = 200, titanium = 100}},
+	{n = "Ядерний комплекс",  seed = 97, waves = 50, sc = 2.7, ores = {copper = 3, lead = 3, sand = 3, coal = 4, titanium = 4}, start = {copper = 1500, lead = 800, graphite = 400, silicon = 300, titanium = 200}},
+}
+
+return C
